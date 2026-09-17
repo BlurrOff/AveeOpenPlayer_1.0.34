@@ -44,26 +44,28 @@ chmod +x "$PROJECT_ROOT/gradlew"
 SDK_PATH="$(find_sdk || true)"
 if [ -n "$SDK_PATH" ]; then
     if [ -f "$PROJECT_ROOT/local.properties" ]; then
-        python - "$PROJECT_ROOT/local.properties" "$SDK_PATH" <<'PY'
-from pathlib import Path
-import sys
-
-path = Path(sys.argv[1])
-sdk_path = sys.argv[2]
-lines = path.read_text().splitlines()
-updated = False
-
-for index, line in enumerate(lines):
-    if line.startswith("sdk.dir="):
-        lines[index] = f"sdk.dir={sdk_path}"
-        updated = True
-        break
-
-if not updated:
-    lines.append(f"sdk.dir={sdk_path}")
-
-path.write_text("\n".join(lines) + "\n")
-PY
+        TMP_LOCAL_PROPERTIES="$LOG_DIR/local.properties.tmp"
+        mkdir -p "$LOG_DIR"
+        if grep -q '^sdk\.dir=' "$PROJECT_ROOT/local.properties"; then
+            awk -v sdk_path="$SDK_PATH" '
+                BEGIN { updated = 0 }
+                /^sdk\.dir=/ {
+                    print "sdk.dir=" sdk_path
+                    updated = 1
+                    next
+                }
+                { print }
+                END {
+                    if (!updated) {
+                        print "sdk.dir=" sdk_path
+                    }
+                }
+            ' "$PROJECT_ROOT/local.properties" > "$TMP_LOCAL_PROPERTIES" && mv "$TMP_LOCAL_PROPERTIES" "$PROJECT_ROOT/local.properties"
+        else
+            cat "$PROJECT_ROOT/local.properties" > "$TMP_LOCAL_PROPERTIES"
+            printf 'sdk.dir=%s\n' "$SDK_PATH" >> "$TMP_LOCAL_PROPERTIES"
+            mv "$TMP_LOCAL_PROPERTIES" "$PROJECT_ROOT/local.properties"
+        fi
     else
         printf 'sdk.dir=%s\n' "$SDK_PATH" > "$PROJECT_ROOT/local.properties"
     fi
