@@ -1,9 +1,9 @@
 apply plugin: 'com.android.application'
 
 android {
+    namespace 'com.aveeopen'
 
-    compileSdkVersion 28
-    buildToolsVersion "28.0.3"
+    compileSdkVersion 34
 
     defaultConfig {
         //Be sure to use correct applicationId in PUBLISH VERSION
@@ -17,15 +17,20 @@ android {
     }
 
     buildTypes {
+        debug {
+            debuggable true
+            minifyEnabled false
+        }
         release {
+            debuggable false
             minifyEnabled true //Set to true in PUBLISH VERSION
             //shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
     compileOptions {
-        sourceCompatibility = '1.8'
-        targetCompatibility = '1.8'
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
     }
 }
 

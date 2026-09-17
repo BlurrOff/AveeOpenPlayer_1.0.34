@@ -11,6 +11,24 @@ Avee Music Player Version (1.0.34) source release.
 Audio playback is realized using MediaPlayer Api and ExoPlayer project. 
 Visualizer is rendered using OpenGL, sound spectrum created using FFT with additional processing. 
 
+## Android Code Studio (ACS) mobile build
+
+This project is configured for a conservative ACS/mobile Gradle stack:
+
+- Android Gradle Plugin `7.4.2`
+- Gradle wrapper `7.5.1`
+- JDK `11` minimum (`17` also works if ACS provides it)
+- Android SDK Platform `34` installed in ACS, plus a compatible Android Build-Tools package
+
+Run from the project root in the ACS terminal:
+
+```sh
+chmod +x acs_debug_build.sh
+./acs_debug_build.sh
+```
+
+The script updates `local.properties` when it finds a valid SDK through `ANDROID_SDK_ROOT`, `ANDROID_HOME`, or common ACS/AndroidIDE SDK paths, then runs `:app:assembleDebug`.
+
 ## Features
 
 Android music player / audio visualization app. 
