@@ -34,8 +34,8 @@ find_sdk() {
     return 1
 }
 
-if [ "$PWD" != "$PROJECT_ROOT" ] || [ ! -f "$PROJECT_ROOT/settings.gradle" ] || [ ! -f "$PROJECT_ROOT/build.gradle" ] || [ ! -f "$PROJECT_ROOT/gradlew" ]; then
-    echo "ERROR: Run this script from the project root: $PROJECT_ROOT"
+if [ ! -f "$PROJECT_ROOT/settings.gradle" ] || [ ! -f "$PROJECT_ROOT/build.gradle" ] || [ ! -f "$PROJECT_ROOT/gradlew" ]; then
+    echo "ERROR: Expected project files next to this script: $PROJECT_ROOT"
     exit 1
 fi
 
@@ -43,7 +43,30 @@ chmod +x "$PROJECT_ROOT/gradlew"
 
 SDK_PATH="$(find_sdk || true)"
 if [ -n "$SDK_PATH" ]; then
-    printf 'sdk.dir=%s\n' "$SDK_PATH" > "$PROJECT_ROOT/local.properties"
+    if [ -f "$PROJECT_ROOT/local.properties" ]; then
+        python - "$PROJECT_ROOT/local.properties" "$SDK_PATH" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+sdk_path = sys.argv[2]
+lines = path.read_text().splitlines()
+updated = False
+
+for index, line in enumerate(lines):
+    if line.startswith("sdk.dir="):
+        lines[index] = f"sdk.dir={sdk_path}"
+        updated = True
+        break
+
+if not updated:
+    lines.append(f"sdk.dir={sdk_path}")
+
+path.write_text("\n".join(lines) + "\n")
+PY
+    else
+        printf 'sdk.dir=%s\n' "$SDK_PATH" > "$PROJECT_ROOT/local.properties"
+    fi
     echo "Using Android SDK: $SDK_PATH"
 elif [ ! -f "$PROJECT_ROOT/local.properties" ]; then
     echo "ERROR: Android SDK not found."
@@ -54,12 +77,13 @@ else
 fi
 
 mkdir -p "$LOG_DIR"
+cd "$PROJECT_ROOT"
 
 echo "Stopping Gradle daemons..."
-"$PROJECT_ROOT/gradlew" --stop >/dev/null 2>&1 || true
+./gradlew --stop >/dev/null 2>&1 || true
 
 echo "Building debug APK..."
-if "$PROJECT_ROOT/gradlew" :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee "$LOG_FILE"; then
+if ./gradlew :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee "$LOG_FILE"; then
     echo
     echo "Debug APK:"
     echo "$PROJECT_ROOT/$EXPECTED_APK_REL"
