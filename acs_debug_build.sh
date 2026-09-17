@@ -34,6 +34,16 @@ find_sdk() {
     return 1
 }
 
+escape_property_value() {
+    printf '%s' "$1" | sed \
+        -e 's/\\/\\\\/g' \
+        -e 's/ /\\ /g' \
+        -e 's/:/\\:/g' \
+        -e 's/=/\\=/g' \
+        -e 's/!/\\!/g' \
+        -e 's/#/\\#/g'
+}
+
 if [ ! -f "$PROJECT_ROOT/settings.gradle" ] || [ ! -f "$PROJECT_ROOT/build.gradle" ] || [ ! -f "$PROJECT_ROOT/gradlew" ]; then
     echo "ERROR: Expected project files next to this script: $PROJECT_ROOT"
     exit 1
@@ -43,11 +53,12 @@ chmod +x "$PROJECT_ROOT/gradlew"
 
 SDK_PATH="$(find_sdk || true)"
 if [ -n "$SDK_PATH" ]; then
+    SDK_PATH_ESCAPED="$(escape_property_value "$SDK_PATH")"
     if [ -f "$PROJECT_ROOT/local.properties" ]; then
         TMP_LOCAL_PROPERTIES="$LOG_DIR/local.properties.tmp"
         mkdir -p "$LOG_DIR"
         if grep -q '^sdk\.dir=' "$PROJECT_ROOT/local.properties"; then
-            awk -v sdk_path="$SDK_PATH" '
+            awk -v sdk_path="$SDK_PATH_ESCAPED" '
                 BEGIN { updated = 0 }
                 /^sdk\.dir=/ {
                     print "sdk.dir=" sdk_path
@@ -63,11 +74,11 @@ if [ -n "$SDK_PATH" ]; then
             ' "$PROJECT_ROOT/local.properties" > "$TMP_LOCAL_PROPERTIES" && mv "$TMP_LOCAL_PROPERTIES" "$PROJECT_ROOT/local.properties"
         else
             cat "$PROJECT_ROOT/local.properties" > "$TMP_LOCAL_PROPERTIES"
-            printf 'sdk.dir=%s\n' "$SDK_PATH" >> "$TMP_LOCAL_PROPERTIES"
+            printf 'sdk.dir=%s\n' "$SDK_PATH_ESCAPED" >> "$TMP_LOCAL_PROPERTIES"
             mv "$TMP_LOCAL_PROPERTIES" "$PROJECT_ROOT/local.properties"
         fi
     else
-        printf 'sdk.dir=%s\n' "$SDK_PATH" > "$PROJECT_ROOT/local.properties"
+        printf 'sdk.dir=%s\n' "$SDK_PATH_ESCAPED" > "$PROJECT_ROOT/local.properties"
     fi
     echo "Using Android SDK: $SDK_PATH"
 elif [ ! -f "$PROJECT_ROOT/local.properties" ]; then
