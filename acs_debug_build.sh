@@ -96,7 +96,9 @@ echo "Stopping Gradle daemons..."
 ./gradlew --stop >/dev/null 2>&1 || true
 
 echo "Building debug APK..."
-if ./gradlew :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee "$LOG_FILE"; then
+./gradlew :app:assembleDebug --no-daemon --stacktrace 2>&1 | tee "$LOG_FILE"
+GRADLE_EXIT=${PIPESTATUS[0]}
+if [ "$GRADLE_EXIT" -eq 0 ]; then
     echo
     echo "Debug APK:"
     echo "$PROJECT_ROOT/$EXPECTED_APK_REL"
