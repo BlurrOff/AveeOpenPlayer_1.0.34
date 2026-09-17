@@ -55,8 +55,8 @@ SDK_PATH="$(find_sdk || true)"
 if [ -n "$SDK_PATH" ]; then
     SDK_PATH_ESCAPED="$(escape_property_value "$SDK_PATH")"
     if [ -f "$PROJECT_ROOT/local.properties" ]; then
-        TMP_LOCAL_PROPERTIES="$LOG_DIR/local.properties.tmp"
         mkdir -p "$LOG_DIR"
+        TMP_LOCAL_PROPERTIES="$(mktemp "$LOG_DIR/local.properties.XXXXXX.tmp")"
         if grep -q '^sdk\.dir=' "$PROJECT_ROOT/local.properties"; then
             awk -v sdk_path="$SDK_PATH_ESCAPED" '
                 BEGIN { updated = 0 }
@@ -105,7 +105,11 @@ fi
 
 echo
 echo "Build failed. Last Gradle output:"
-tail -n 120 "$LOG_FILE" || true
+if [ -f "$LOG_FILE" ]; then
+    tail -n 120 "$LOG_FILE" || true
+else
+    echo "No Gradle log file was written before the failure."
+fi
 echo
 echo "Expected debug APK path:"
 echo "$PROJECT_ROOT/$EXPECTED_APK_REL"
